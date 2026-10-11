@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<style>.hint{font-size:13px;color:var(--mute);margin-top:6px;line-height:1.5}.hint b{color:var(--burg)}.chk{font-size:13px;margin-top:6px;color:#1c5a2c}.sz{display:inline-block;background:var(--sand);color:var(--burg);font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px;margin-left:6px;vertical-align:middle}</style>
 </head>
 <body>
 <div class="adm">
@@ -43,11 +42,9 @@
           </div>
           <div><label for="ds">Description</label><textarea id="ds" rows="4"></textarea></div>
           <div>
-            <label>Photos <span class="sz">1200 × 1500 px</span></label>
+            <label>Photos (first one is the main photo)</label>
             <div class="imgs" id="imgs"></div>
             <input type="file" id="files" accept="image/*" multiple style="margin-top:10px">
-            <p class="hint"><b>Best size: 1200 × 1500 px each</b> (portrait, 4:5 shape). Use the same shape for every product so the shop grid looks tidy. Keep the product in the centre. Minimum 800 px wide. You can pick several photos at once; the <b>first photo is the main one</b> shown on the shop page.</p>
-            <div class="chk" id="filesChk"></div>
           </div>
           <div style="display:flex;gap:22px;flex-wrap:wrap">
             <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="st" checked> In stock</label>
@@ -62,10 +59,8 @@
     <!-- SETTINGS -->
     <div id="set" class="box" hidden>
       <div class="f">
-        <div><div class="cur"><div><label>Logo <span class="sz">600 × 200 px</span></label><input type="file" id="logoF" accept="image/*"></div><img id="logoP" alt="" hidden></div>
-          <p class="hint"><b>Best size: 600 × 200 px</b>, wide shape, <b>transparent PNG</b>. It is shown only 40 px tall, so keep it simple and readable. Minimum 400 px wide.</p><div class="chk" id="logoChk"></div></div>
-        <div><div class="cur"><div><label>Hero image (home page) <span class="sz">1200 × 1500 px</span></label><input type="file" id="heroF" accept="image/*"></div><img id="heroP" alt="" hidden></div>
-          <p class="hint"><b>Best size: 1200 × 1500 px</b>, portrait (4:5 shape). On phones it is cropped to a wider frame, so keep the main subject <b>in the centre</b>. Minimum 1000 px wide.</p><div class="chk" id="heroChk"></div></div>
+        <div class="cur"><div><label>Logo</label><input type="file" id="logoF" accept="image/*"></div><img id="logoP" alt="" hidden></div>
+        <div class="cur"><div><label>Hero image (home page)</label><input type="file" id="heroF" accept="image/*"></div><img id="heroP" alt="" hidden></div>
         <div class="two">
           <div><label for="bn">Brand name</label><input id="bn"></div>
           <div><label for="wa">WhatsApp number (with country code)</label><input id="wa" inputmode="tel" placeholder="923001234567"></div>
@@ -130,21 +125,6 @@ async function upload(file, folder) {
   return sb.storage.from('site').getPublicUrl(path).data.publicUrl;
 }
 
-// Shows the picture size you picked and warns if it is too small
-async function checkFiles(input, out, minW) {
-  const lines = [];
-  for (const f of $(input).files) {
-    try {
-      const b = await createImageBitmap(f);
-      lines.push(b.width >= minW ? `✓ ${f.name}: ${b.width} × ${b.height} px, good` : `⚠ ${f.name}: ${b.width} × ${b.height} px is small and may look blurry (use ${minW} px wide or more)`);
-    } catch { lines.push(`${f.name}: could not read this file`); }
-  }
-  $(out).innerHTML = lines.map(esc).join('<br>');
-}
-$('#files').onchange = () => checkFiles('#files', '#filesChk', 800);
-$('#logoF').onchange = () => checkFiles('#logoF', '#logoChk', 400);
-$('#heroF').onchange = () => checkFiles('#heroF', '#heroChk', 1000);
-
 // ---------- products ----------
 async function loadProducts() {
   const { data, error } = await sb.from('products').select('*').order('created_at', { ascending: false });
@@ -182,7 +162,7 @@ function openForm(p) {
   $('#ft').textContent = p ? 'Edit product' : 'Add product';
   $('#n').value = p?.name || ''; $('#c').value = p?.category || 'Candles';
   $('#pr').value = p?.price ?? ''; $('#sp').value = p?.sale_price ?? '';
-  $('#ds').value = p?.description || ''; $('#files').value = ''; $('#filesChk').innerHTML = '';
+  $('#ds').value = p?.description || ''; $('#files').value = '';
   $('#st').checked = p ? p.in_stock : true; $('#pub').checked = p ? p.published : true; $('#ft2').checked = p?.featured || false;
   drawImgs(); $('#form').hidden = false; $('#list').hidden = true; scrollTo(0, 0);
 }
@@ -234,7 +214,7 @@ $('#saveS').onclick = async () => {
     if ($('#heroF').files[0]) row.hero_url = await upload($('#heroF').files[0], 'brand');
     const { error } = await sb.from('settings').update(row).eq('id', 1);
     if (error) throw error;
-    $('#logoF').value = ''; $('#heroF').value = ''; $('#logoChk').innerHTML = ''; $('#heroChk').innerHTML = '';
+    $('#logoF').value = ''; $('#heroF').value = '';
     say('Settings saved. The website is updated.'); loadSettings();
   } catch (e) { say('Could not save: ' + (e.message || e), false); }
   btn.disabled = false; btn.textContent = 'Save settings';
