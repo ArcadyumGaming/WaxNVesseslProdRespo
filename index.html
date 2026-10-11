@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wax n Vessels | Handmade candles, frames and gift boxes</title>
+<meta name="description" content="Handcrafted candles, meaningful frames, and curated gift boxes from Pakistan. Order on WhatsApp.">
+<meta property="og:title" content="Wax n Vessels">
+<meta property="og:description" content="Handcrafted candles, meaningful frames, and curated gift boxes. Order on WhatsApp.">
+<meta name="theme-color" content="#4A1F24">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234A1F24'/%3E%3Cpath d='M32 12c4 7 10 11 10 19a10 10 0 0 1-20 0c0-4 2-6 4-9 1 3 2 4 4 4 0-5-1-9 2-14Z' fill='%23F4EEE6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="#top" id="logo"></a>
+  <nav class="menu"><a href="#shop">Shop</a><a href="#custom">Custom orders</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+  <a class="btn sm" id="waTop" target="_blank" rel="noopener">WhatsApp us</a>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap">
+  <div>
+    <h1 id="heroTitle"></h1>
+    <p class="lead" id="heroText"></p>
+    <div class="cta"><a class="btn" href="#shop">Shop Gifts</a><button class="btn ghost" data-cat="Candles">Explore Candles</button></div>
+  </div>
+  <div class="art" id="heroArt"></div>
+</div></div>
+
+<section><div class="wrap">
+  <div class="head"><h2>Find the right gift</h2></div>
+  <div class="cats" id="cats"></div>
+</div></section>
+
+<section id="shop"><div class="wrap">
+  <div class="head"><h2>The shop</h2></div>
+  <div class="tools">
+    <div class="pills" id="pills"></div>
+    <input id="q" type="search" placeholder="Search gifts" aria-label="Search gifts">
+    <select id="sort" aria-label="Sort"><option value="rec">Newest first</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select>
+  </div>
+  <div class="grid" id="grid"></div>
+</div></section>
+
+<section class="strip" id="custom"><div class="wrap">
+  <div>
+    <h2>Make it theirs.</h2>
+    <p>Personalised candles, framed keepsakes and gift boxes put together around the person you are giving them to.</p>
+    <a class="btn light" id="waCustom" target="_blank" rel="noopener">Tell us your idea</a>
+  </div>
+  <ol class="steps">
+    <li><b>1</b><div><strong>Choose a gift</strong><span>Pick a candle, frame or gift box.</span></div></li>
+    <li><b>2</b><div><strong>Tell us what to personalise</strong><span>Names, a message, a colour, a scent.</span></div></li>
+    <li><b>3</b><div><strong>Confirm on WhatsApp</strong><span>We confirm availability, delivery and payment with you.</span></div></li>
+  </ol>
+</div></section>
+
+<section class="about" id="about"><div class="wrap">
+  <h2>Our story</h2><p id="aboutText"></p>
+</div></section>
+</main>
+
+<footer id="contact"><div class="wrap">
+  <div><a class="logo" id="flogo" href="#top"></a><p id="fnote">Handmade gifts from Pakistan.</p></div>
+  <div><h4>Shop</h4><a href="#" data-cat="Candles">Candles</a><a href="#" data-cat="Frames">Frames</a><a href="#" data-cat="Gift Boxes">Gift Boxes</a></div>
+  <div><h4>Get in touch</h4><a id="waFoot" target="_blank" rel="noopener">Order on WhatsApp</a><a id="ig" target="_blank" rel="noopener" hidden>Instagram</a><a id="fb" target="_blank" rel="noopener" hidden>Facebook</a><a id="tt" target="_blank" rel="noopener" hidden>TikTok</a></div>
+</div><div class="wrap copy">© <span id="yr"></span> <span id="cb"></span>. Messaging us on WhatsApp is not an order until we reply and confirm.</div></footer>
+
+<dialog id="dlg"><button class="x" id="close" aria-label="Close">×</button><div id="pd"></div></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

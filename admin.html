@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin | Wax n Vessels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="adm">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <h1 style="font-size:44px">Shop admin</h1>
+    <div id="bar" hidden><a class="btn ghost sm" href="index.html" target="_blank">View shop</a> <button class="btn ghost sm" id="out">Sign out</button></div>
+  </div>
+  <div id="msg"></div>
+
+  <div id="login" class="box" style="max-width:420px;margin-top:20px">
+    <div class="f">
+      <div><label for="em">Email</label><input id="em" type="email" autocomplete="username"></div>
+      <div><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div>
+      <button class="btn" id="go">Sign in</button>
+    </div>
+  </div>
+
+  <div id="app" hidden>
+    <div class="tabs"><button class="pill on" data-t="prod">Products</button><button class="pill" data-t="set">Site settings</button></div>
+
+    <!-- PRODUCTS -->
+    <div id="prod">
+      <div id="list" class="box"></div>
+      <div id="form" class="box" hidden>
+        <h2 id="ft" style="font-size:34px;margin-bottom:18px">Add product</h2>
+        <div class="f">
+          <div><label for="n">Name</label><input id="n" maxlength="120"></div>
+          <div><label for="c">Category</label><select id="c"><option>Candles</option><option>Frames</option><option>Gift Boxes</option></select></div>
+          <div class="two">
+            <div><label for="pr">Price (PKR)</label><input id="pr" inputmode="decimal" placeholder="2500"></div>
+            <div><label for="sp">Sale price (optional)</label><input id="sp" inputmode="decimal" placeholder="1999"></div>
+          </div>
+          <div><label for="ds">Description</label><textarea id="ds" rows="4"></textarea></div>
+          <div>
+            <label>Photos (first one is the main photo)</label>
+            <div class="imgs" id="imgs"></div>
+            <input type="file" id="files" accept="image/*" multiple style="margin-top:10px">
+          </div>
+          <div style="display:flex;gap:22px;flex-wrap:wrap">
+            <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="st" checked> In stock</label>
+            <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pub" checked> Show on website</label>
+            <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ft2"> Featured</label>
+          </div>
+          <div style="display:flex;gap:10px"><button class="btn" id="save">Save product</button><button class="btn ghost" id="cancel">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="set" class="box" hidden>
+      <div class="f">
+        <div class="cur"><div><label>Logo</label><input type="file" id="logoF" accept="image/*"></div><img id="logoP" alt="" hidden></div>
+        <div class="cur"><div><label>Hero image (home page)</label><input type="file" id="heroF" accept="image/*"></div><img id="heroP" alt="" hidden></div>
+        <div class="two">
+          <div><label for="bn">Brand name</label><input id="bn"></div>
+          <div><label for="wa">WhatsApp number (with country code)</label><input id="wa" inputmode="tel" placeholder="923001234567"></div>
+        </div>
+        <div><label for="ht">Hero headline</label><input id="ht"></div>
+        <div><label for="hx">Hero text</label><textarea id="hx" rows="2"></textarea></div>
+        <div><label for="ab">Our story</label><textarea id="ab" rows="4"></textarea></div>
+        <div class="two">
+          <div><label for="ig">Instagram link</label><input id="ig" placeholder="https://instagram.com/…"></div>
+          <div><label for="fb">Facebook link</label><input id="fb"></div>
+        </div>
+        <div><label for="tt">TikTok link</label><input id="tt"></div>
+        <button class="btn" id="saveS" style="max-width:240px">Save settings</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const say = (t, ok = true) => { $('#msg').innerHTML = t ? `<div class="msg ${ok ? 'ok' : 'err'}">${esc(t)}</div>` : ''; if (t) scrollTo({ top: 0, behavior: 'smooth' }); };
+const fmt = n => 'PKR ' + Number(n).toLocaleString('en-US');
+let products = [], settings = {}, editing = null, imgs = [];   // imgs = existing URLs kept (strings)
+
+// ---------- auth ----------
+async function init() {
+  const { data } = await sb.auth.getSession();
+  data.session ? start() : ($('#login').hidden = false);
+}
+$('#go').onclick = async () => {
+  say('');
+  const { error } = await sb.auth.signInWithPassword({ email: $('#em').value.trim(), password: $('#pw').value });
+  error ? say('Wrong email or password.', false) : start();
+};
+$('#pw').onkeydown = e => { if (e.key === 'Enter') $('#go').click(); };
+$('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+async function start() {
+  $('#login').hidden = true; $('#app').hidden = false; $('#bar').hidden = false;
+  await Promise.all([loadProducts(), loadSettings()]);
+}
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b));
+  $('#prod').hidden = b.dataset.t !== 'prod'; $('#set').hidden = b.dataset.t !== 'set';
+});
+
+// ---------- images: shrink on the phone/laptop, then upload ----------
+async function shrink(file, max = 1600) {
+  const bmp = await createImageBitmap(file);
+  const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(res, 'image/webp', .85));
+}
+async function upload(file, folder) {
+  const blob = await shrink(file);
+  const path = `${folder}/${crypto.randomUUID()}.webp`;
+  const { error } = await sb.storage.from('site').upload(path, blob, { contentType: 'image/webp', cacheControl: '31536000' });
+  if (error) throw error;
+  return sb.storage.from('site').getPublicUrl(path).data.publicUrl;
+}
+
+// ---------- products ----------
+async function loadProducts() {
+  const { data, error } = await sb.from('products').select('*').order('created_at', { ascending: false });
+  if (error) return say('Could not load products: ' + error.message, false);
+  products = data; renderList();
+}
+function renderList() {
+  $('#list').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="font-size:34px">Products (${products.length})</h2><button class="btn" id="add">+ Add product</button></div>` +
+    (products.length ? products.map(p => `<div class="row">
+      ${p.images[0] ? `<img src="${esc(p.images[0])}" alt="">` : '<div class="nm0"></div>'}
+      <div class="nm"><b>${esc(p.name)}</b><small>${esc(p.sku)} · ${esc(p.category)} · ${fmt(p.sale_price ?? p.price)}</small></div>
+      <label><input type="checkbox" data-pub="${p.id}" ${p.published ? 'checked' : ''}> Visible</label>
+      <label><input type="checkbox" data-stock="${p.id}" ${p.in_stock ? 'checked' : ''}> In stock</label>
+      <button class="btn ghost sm" data-edit="${p.id}">Edit</button>
+      <button class="btn red sm" data-del="${p.id}">Delete</button></div>`).join('') : '<p style="margin-top:20px;color:var(--mute)">No products yet. Press “Add product”.</p>');
+  $('#add').onclick = () => openForm(null);
+}
+$('#list').addEventListener('click', async e => {
+  const ed = e.target.dataset.edit, del = e.target.dataset.del;
+  if (ed) openForm(products.find(p => p.id === ed));
+  if (del && confirm('Delete this product for good?')) {
+    const { error } = await sb.from('products').delete().eq('id', del);
+    error ? say(error.message, false) : (say('Product deleted.'), loadProducts());
+  }
+});
+$('#list').addEventListener('change', async e => {
+  const t = e.target, patch = t.dataset.pub ? { published: t.checked } : t.dataset.stock ? { in_stock: t.checked } : null;
+  if (!patch) return;
+  const { error } = await sb.from('products').update(patch).eq('id', t.dataset.pub || t.dataset.stock);
+  error ? say(error.message, false) : say('Updated.');
+});
+
+function openForm(p) {
+  editing = p; imgs = p ? [...p.images] : [];
+  $('#ft').textContent = p ? 'Edit product' : 'Add product';
+  $('#n').value = p?.name || ''; $('#c').value = p?.category || 'Candles';
+  $('#pr').value = p?.price ?? ''; $('#sp').value = p?.sale_price ?? '';
+  $('#ds').value = p?.description || ''; $('#files').value = '';
+  $('#st').checked = p ? p.in_stock : true; $('#pub').checked = p ? p.published : true; $('#ft2').checked = p?.featured || false;
+  drawImgs(); $('#form').hidden = false; $('#list').hidden = true; scrollTo(0, 0);
+}
+function drawImgs() {
+  $('#imgs').innerHTML = imgs.map((u, i) => `<div class="${i ? '' : 'm'}"><img src="${esc(u)}" alt=""><button data-rm="${i}" title="Remove">×</button>${i ? `<button data-main="${i}" style="top:auto;bottom:-6px;background:var(--burg);width:auto;padding:0 8px;border-radius:99px;height:22px;font-size:11px">main</button>` : '<i>main</i>'}</div>`).join('');
+}
+$('#imgs').addEventListener('click', e => {
+  if (e.target.dataset.rm) imgs.splice(+e.target.dataset.rm, 1);
+  if (e.target.dataset.main) imgs.unshift(imgs.splice(+e.target.dataset.main, 1)[0]);
+  drawImgs();
+});
+$('#cancel').onclick = () => { $('#form').hidden = true; $('#list').hidden = false; };
+$('#save').onclick = async () => {
+  const name = $('#n').value.trim(), price = parseFloat($('#pr').value), sale = $('#sp').value.trim() === '' ? null : parseFloat($('#sp').value);
+  if (!name) return say('Please enter a name.', false);
+  if (!(price >= 0)) return say('Please enter a valid price.', false);
+  if (sale !== null && !(sale >= 0 && sale < price)) return say('Sale price must be lower than the price.', false);
+  const btn = $('#save'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const all = [...imgs];
+    for (const f of $('#files').files) all.push(await upload(f, 'products'));
+    const row = { name, category: $('#c').value, price, sale_price: sale, description: $('#ds').value.trim(), images: all,
+      in_stock: $('#st').checked, published: $('#pub').checked, featured: $('#ft2').checked };
+    const { error } = editing ? await sb.from('products').update(row).eq('id', editing.id) : await sb.from('products').insert(row);
+    if (error) throw error;
+    say('Saved. It is live on the website.');
+    $('#form').hidden = true; $('#list').hidden = false; loadProducts();
+  } catch (e) { say('Could not save: ' + (e.message || e), false); }
+  btn.disabled = false; btn.textContent = 'Save product';
+};
+
+// ---------- settings ----------
+async function loadSettings() {
+  const { data } = await sb.from('settings').select('*').eq('id', 1).single();
+  settings = data || {};
+  $('#bn').value = settings.brand_name || ''; $('#wa').value = settings.whatsapp || '';
+  $('#ht').value = settings.hero_title || ''; $('#hx').value = settings.hero_text || ''; $('#ab').value = settings.about_text || '';
+  $('#ig').value = settings.instagram || ''; $('#fb').value = settings.facebook || ''; $('#tt').value = settings.tiktok || '';
+  for (const [k, id] of [['logo_url', 'logoP'], ['hero_url', 'heroP']]) { $('#' + id).hidden = !settings[k]; $('#' + id).src = settings[k] || ''; }
+}
+$('#saveS').onclick = async () => {
+  const btn = $('#saveS'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const row = { brand_name: $('#bn').value.trim() || 'Wax n Vessels', whatsapp: $('#wa').value.replace(/\D/g, ''),
+      hero_title: $('#ht').value.trim(), hero_text: $('#hx').value.trim(), about_text: $('#ab').value.trim(),
+      instagram: $('#ig').value.trim(), facebook: $('#fb').value.trim(), tiktok: $('#tt').value.trim() };
+    if (row.whatsapp.length < 10) throw new Error('WhatsApp number looks too short. Use the country code, e.g. 923001234567.');
+    if ($('#logoF').files[0]) row.logo_url = await upload($('#logoF').files[0], 'brand');
+    if ($('#heroF').files[0]) row.hero_url = await upload($('#heroF').files[0], 'brand');
+    const { error } = await sb.from('settings').update(row).eq('id', 1);
+    if (error) throw error;
+    $('#logoF').value = ''; $('#heroF').value = '';
+    say('Settings saved. The website is updated.'); loadSettings();
+  } catch (e) { say('Could not save: ' + (e.message || e), false); }
+  btn.disabled = false; btn.textContent = 'Save settings';
+};
+
+init();
+</script>
+</body>
+</html>
